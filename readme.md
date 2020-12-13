@@ -2,8 +2,7 @@
  * @Descripttion:
  * @version:
  * @Date: 2020-12-13 12:20:32
- * @LastEditors: sueRimn
- * @LastEditTime: 2020-12-13 12:22:36
+ * @LastEditTime: 2020-12-13 12:28:49
 -->
 ### study list
 
@@ -11,3 +10,7 @@
 
 #### html
 #### css
+
+#### typescript
+
+#### webpack
