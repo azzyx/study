@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>06rgba&opacity</title>
+  <style>
+    * {
+      padding: 0;
+      margin: 0;
+    }
+    .opacity, .rgba {
+      width: 100px;
+      height: 100px;
+    }
+    .rgba {
+      background: rgba(255, 255, 0, 0.7);
+    }
+    .opacity {
+      opacity: .3;
+      background: #000;
+      color: red;
+    }
+    .rgba_child {
+      background: #fff;
+    }
+    /* 
+      1.opacity作用于元素以及元素内的所有内容（包括文字），而且子元素也会继承设置的属性。
+      2.rgba只会对当前的元素起作用，子元素不会继承。
+     */
+  </style>
+</head>
+<body>
+  <div class="rgba">
+    rgba的效果
+    <div class="rgba_child">
+      opacity的child结果
+    </div>
+  </div>
+  <div class="opacity">
+    opacity的效果
+    <div class="o_child">
+      opacity的child结果
+    </div>
+  </div>
+</body>
+</html>

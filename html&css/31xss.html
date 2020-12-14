@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>xss</title>
+</head>
+<body>
+  <input type="text" id="input">
+  <button onclick="filter();">filter-xss</button>
+  <script src="31xss.js"></script>
+  <script>
+    function filter() {
+      let inputValue = document.getElementById('input').value;
+      // 使用函数名 filterXSS，用法一样
+      var html = filterXSS(inputValue);
+      console.log(html);
+    }
+  </script>
+</body>
+</html>

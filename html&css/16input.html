@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>16input的readonly和disabled属性</title>
+</head>
+<body>
+  <p>
+    $("[readonly]").click( function(){ console.log("clicked") });//log - clicked
+    $("[readonly]").hover( function(){ console.log("hovered") });//log - hovered
+    $("[readonly]").dblclick( function(){ console.log("double clicked") });//log - double clicked
+  </p>
+  <input type="text" value="readonly" readonly>
+  <input type="checkbox" value="checkbox" readonly>
+  <input type="radio" value="radio" readonly>
+
+  <p>
+    None of the below will get triggered.
+    $("[disabled]").click( function(){ console.log("clicked") });//No Impact
+    $("[disabled]").hover( function(){ console.log("hovered") });//No Impact
+    $("[disabled]").dblclick( function(){ console.log("double clicked") });//No Impact
+  </p>
+  <input type="text" value="disabled" disabled>
+  <input type="checkbox" value="checkbox" disabled>
+  <input type="radio" value="radio" disabled>
+
+  <p>相同点：都会使表单变成不可编辑的状态</p>
+  <div>
+    <p>不同点：</p>
+    <ol>
+      <li>
+        readonly是只读（可能是某种处理），disabled是禁用（可能是权限或其他原因），意义不同
+      </li>
+      <li>disabled会使文本框变灰，readonly不会</li>
+      <li>disabled对所有的表单都能生效，readonly对hidden、radio、checkbox、range、color无效</li>
+      <li>disabled的值不会被form收集，readonly的值会。</li>
+      <li>readonly只对input的text属性和textarea有效。</li>
+    </ol>
+  </div>
+</body>
+</html>

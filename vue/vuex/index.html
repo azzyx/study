@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>vuex</title>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <script src="https://unpkg.com/vuex@2.0.0"></script>
+    <script>
+      // Vue.use(Vuex);
+      const store = new Vuex.Store({
+        state: {
+          count: 0,
+          todos: [
+            { id: 1, text: "...", done: true },
+            { id: 2, text: "...", done: false },
+          ],
+        },
+        getters: {
+          doneTodos: (state) => {
+            return state.todos.map((todo, getters) => {
+              console.log("todo.done", todo.done);
+              console.log("getters", getters);
+              return todo;
+            });
+          },
+        },
+        mutations: {
+          increment(state, ...rest) {
+            console.log("rest", rest);
+            state.count--;
+          },
+          decress() {},
+        },
+        actions: {
+          increment(contex) {
+            contex.commit("increment");
+          },
+        },
+      });
+      store.commit("increment");
+      console.log(store.state.count);
+
+      const Counter = {
+        template: `<div style="color: red" >{{count}}</div>`,
+        computed: {
+          count() {
+            // return store.state.count;
+            console.log(this.$store);
+            console.log(this.$store.getters.doneTodos);
+            return this.$store.state.count;
+          },
+        },
+      };
+
+      const app = new Vue({
+        el: "#app",
+        store,
+        components: { Counter },
+        template: `<div class="app">
+          <Counter/>
+        </div>`,
+      });
+    </script>
+  </body>
+</html>

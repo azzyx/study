@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>17伪类和伪元素</title>
+    <style>
+      ul.nth-child li:nth-child(2n) {
+        background: orange;
+      }
+    </style>
+  </head>
+  <body>
+    <div>
+      <h2>
+        1.伪类
+      </h2>
+      <p>
+        css 伪类是添加到选择器的关键字，指定要选择的元素的特殊的状态，
+        例如，:hover可被用于在用户将鼠标悬停在按钮上时改变按钮的颜色
+        能够根据状态改变元素样式
+      </p>
+      <h3>
+        :nth-child(2n)
+      </h3>
+      <div>
+        <ul class="nth-child">
+          <li>1</li>
+          <li>2</li>
+          <li>3</li>
+          <li>4</li>
+          <li>5</li>
+        </ul>
+        <p>从1开头</p>
+      </div>
+    </div>
+    <div>
+      <h2>2.伪元素</h2>
+      <p>伪元素是一个附加至选择器末的关键词，允许你对被选择元素的特定部分修改样式。
+        通常使用content属性来为一个元素添加修饰性的内容，此元素默认为行内元素。
+      </p>
+    </div>
+    <div>备注：一个选择器中只能使用一个伪元素，伪元素必须紧跟在语句中的简单选择器/基础选择器之后。
+      按照规范，应该使用双冒号（::）而不是单冒号(:)，以便区分伪类哈伪元素。
+    </div>
+  </body>
+</html>

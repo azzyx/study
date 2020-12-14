@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>11box-sizing</title>
+    <style>
+      * {
+        padding: 0;
+        margin: 0;
+      }
+      .no-box-sizing, .box {
+        height: 100px;
+        width: 200px;
+        background: lightblue;
+        padding: 10px;
+        border: 10px solid  pink;
+      }
+      .box-sizing  {
+        height: 100px;
+        width: 200px;
+        background: lightblue;
+        padding: 10px;
+        border: 10px solid  pink;
+        box-sizing: border-box;
+      }
+      /*
+        border-box
+        有三个值，
+        1，默认值是：content-box;content-box的值是conten+padding+border
+        2，border-box。元素的内容和padding以及border都在设定好的height和width之内，
+           如果想要得到元素的content的值，需要减掉相应的border以及padding的值。
+        3，inherit 规定从父元素继承box-sizing属性的值。
+      */
+    </style>
+  </head>
+  <body>
+    <div>
+      <h3>
+        box-sizing
+      </h3>
+      <div class="no-box-sizing box">
+        no-box-sizing content
+      </div>
+      <div class="box-sizing box">
+        box-sizing content
+      </div>
+    </div>
+    <div>
+      <h3>盒模型</h3>
+      <div>
+        盒模型分为两种：IE盒模型和w3c模型
+      </div>
+      <div>
+        <p>1.IE盒模型</p>
+        <p>
+          IE 盒模型的内容包括：content+padding+border;
+        </p>
+        <p>2.w3c盒模型</p>
+        <p>w3c盒模型就是内容只有content</p>
+      </div>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,29 @@
+{
+  "name": "study-node",
+  "version": "1.0.0",
+  "description": "nodejs、express、koa2",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "cross-env NODE_ENV=dev nodemon ./bin/www.js",
+    "pro": "cross-env NODE_ENV=production nodemon ./bin/www.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/azzyx/study-node.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/azzyx/study-node/issues"
+  },
+  "homepage": "https://github.com/azzyx/study-node#readme",
+  "devDependencies": {
+    "cross-env": "^7.0.2",
+    "nodemon": "^2.0.4"
+  },
+  "dependencies": {
+    "mysql": "^2.18.1"
+  }
+}

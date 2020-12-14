@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>positon</title>
+    <style>
+      #pr {
+        /* position: relative; */
+        height: 500px;
+        width: 500px;
+        background: lightblue;
+      }
+      .son {
+        position: absolute;
+        /* top: 0; */
+      }
+      .son-son {
+        position: inherit;
+        top: -10px;
+      }
+      /* 
+        position的值
+        1.static默认值。没有定位，元素出现在正常流中（忽略top bottom left right z-index声明）。
+        2.relative生成相对定位的元素，相对于其正常位置进行定位。
+        3.absolute生成绝对定位的元素，相对于值不为static的第一个父元素进行定位。
+        4.fixed生成绝对定位的元素，相对于其正常位置进行定位。
+        5.inherit规定从父元素继承position属性的值。
+
+        top botton left right z-index 只有position的值不为static的时候才生效
+       */
+    </style>
+  </head>
+  <body>
+    <div id="pr">
+      <div id="son">id-son</div>
+      <div class="son">class-son
+        <div class="son-son">class-son-son</div>
+      </div>
+    </div>
+  </body>
+</html>

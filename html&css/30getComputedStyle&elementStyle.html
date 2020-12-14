@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>30getComputedStyle&elementStyle</title>
+    <style>
+      p {
+        width: 400px;
+        margin: 0 auto;
+        padding: 20px;
+        font: 2rem/2 sans-serif;
+        text-align: center;
+        background: purple;
+        color: white;
+      }
+    </style>
+  </head>
+  <body style="font-weight:bold;">
+    <p style="color: red;">getComputedStyle</p>
+    <script>
+      let p = document.querySelector('p');
+      let compStyle = window.getComputedStyle(p);
+      console.log(compStyle);
+      let elementStyle = p.style;
+      console.log('elementStyle', elementStyle);
+    </script>
+  </body>
+</html>

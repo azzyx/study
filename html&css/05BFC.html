@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>05BFC</title>
+    <style>
+      * {
+        padding: 0;
+        margin: 0;
+      }
+      .bfc {
+        width: 200px;
+        background: lightblue;
+      }
+      .left {
+        float: left;
+      }
+      .right {
+        /* overflow: hidden; */
+        display: flow-root;
+        text-align: justify;
+      }
+      /* 
+        下列方式会创建块格式化上下文：
+        1.根元素<html>
+        2.浮动元素（元素的float不是none）
+        3.绝对定位元素（元素的position为absolute或fixed）
+        4.行内元素（元素的display无inline-block）
+        5.表格单元格（元素的display无table-cell，HTML表格单元格默认为该值）
+        6.overflow值不为visible的块元素
+        7.display值为flow-root的元素
+        8.弹性元素（display为flex或inline-flex元素的直接子元素）
+        9.网格元素（display为grid或inline-gird元素的直接子元素）
+
+        快格式化上下文对浮动定位与清除浮动都很重要
+       */
+    </style>
+  </head>
+  <body>
+    <div class="bfc">
+      <div class="left">
+        <img src="" alt="图像">
+      </div>
+      <div class="right">
+        文字文字文字文字文字文字文字文字文字文字文字文字文字文字文字文字文字文字文字文字
+        文字文字文字文字文字文字文字文字文字文字文字文字文字文字文字文字文字文字文字文字
+        文字文字文字文字文字文字文字文字文字文字文字文字文字文字文字文字文字文字文字文字
+      </div>
+    </div>
+  </body>
+</html>

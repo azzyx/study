@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>实现扁平化数组</title>
+  </head>
+  <body>
+    <div>实现扁平化数组-flat</div>
+    <script>
+      function* flatten(array) {
+        for (const item of array) {
+          if (Array.isArray(item)) {
+            yield* flatten(item);
+          } else {
+            yield item;
+          }
+        }
+      }
+      var arr = [1, 2, 3, [4, 5, [6, 7]]];
+      const flattened = [...flatten(arr)];
+      console.log("flattened", flattened);
+    </script>
+    <script>
+      function flatDeep(arr, d = 1) {
+        console.log("d", d);
+        return d > 0
+          ? arr.reduce(
+              (acc, val) =>
+                acc.concat(Array.isArray(val) ? flatDeep(val, d - 1) : val),
+              []
+            )
+          : arr.slice();
+      }
+      const arr1 = [1, 2, 3, 4, [5, 6, [7, 8, [9]]]];
+      const arr1Flat = flatDeep(arr1, Infinity);
+      console.log(arr1Flat);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,17 @@
+.year {
+  position: relative;
+  margin-right: 40px;
+  margin-left: 20px;
+  text-decoration: none;
+}
+.year::before {
+  content: "";
+  position: absolute;
+  top: 48%;
+  left: -16px;
+  width: 8px;
+  height: 8px;
+  transform: translateY(-50%);
+  border-radius: 50%;
+  background-color: #015d01;
+}

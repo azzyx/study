@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>三明治布局</title>
+    <style>
+      * {
+        padding: 0;
+        margin: 0;
+      }
+      #grid {
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+        height: 100vh;
+      }
+      header,
+      footer {
+        background: wheat;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="grid">
+      <header>Header Content</header>
+      <main>Main Content</main>
+      <footer>Footer Content</footer>
+    </div>
+  </body>
+</html>

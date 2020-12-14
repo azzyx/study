@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>圣杯布局</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        display: grid;
+        grid-template: auto 1fr auto / auto 1fr auto;
+        height: 100vh;
+      }
+      header,
+      footer {
+        width: 100%;
+        height: 200px;
+        background: lightblue;
+        grid-column: 1 / 4;
+      }
+      .left-side {
+        grid-column: 1 / 2;
+        background: pink;
+      }
+      .main {
+        grid-column: 2 / 3;
+        background: wheat;
+      }
+      .right-side {
+        grid-column: 3 / 4;
+        background: #3ef;
+      }
+    </style>
+  </head>
+  <body>
+    <header>头部信息</header>
+    <div class="left-side" contenteditable>left-side</div>
+    <main class="main">主体内容</main>
+    <div class="right-side" contenteditable>right-side</div>
+    <footer>脚步信息</footer>
+  </body>
+</html>

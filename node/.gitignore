@@ -1,0 +1,7 @@
+blog-1/node_modules
+.vscode
+package-lock.json
+*.log
+logs
+mysql-test/node_modules
+mysql-test/package-lock.json

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>09css实现三角</title>
+    <style>
+      * {
+        padding: 0;
+        margin: 0;
+      }
+      .triangle {
+        height: 0;
+        width: 0;
+        border-width: 20px;
+        border-style: solid;
+      }
+      .down {
+        border-color: red transparent transparent  transparent;
+      }
+      .up {
+        border-color: transparent transparent red transparent;
+      }
+      .right {
+        border-color: transparent transparent transparent red;
+      }
+      .left {
+        border-color: transparent red transparent transparent;
+      }
+      /* 
+        实现步骤：
+        高和宽都设置为0；
+        将border的组合写法给拆开。
+        border-width
+        border-style
+        
+        border-color
+        将相对面的颜色设为三角的颜色，其他面的颜色设置为transparent
+       */
+    </style>
+  </head>
+  <body>
+    <div>
+      <p>1.向下的三角</p>
+      <div class="triangle down"></div>
+    </div>
+    <div>
+      <p>2.向上的三角</p>
+      <div class="triangle up"></div>
+    </div>
+    <div>
+      <p>3.向右的三角</p>
+      <div class="triangle right"></div>
+    </div>
+    <div>
+      <p>4.向左的三角</p>
+      <div class="triangle left"></div>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>iframe 的缺点</title>
+</head>
+<body>
+  <div>
+    <p>iframe的缺点</p>
+    <div>1.iframe会阻塞主页面的Onload事件</div>
+    <div>2.搜素引擎的检索程序无法解读这种页面，不利于SEO</div>
+    <div>3.iframe和主页面共享连接池，而浏览器对相同域的连接有限制，所以会影响页面的并行加载。</div>
+    <p>如果需要使用iframe，最好是通过javaScript动态给iframe添加src属性值，这样可以绕开以上两个问题</p>
+  </div>
+</body>
+</html>

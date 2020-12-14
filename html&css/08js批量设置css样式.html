@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>08js批量设置css样式</title>
+  <style>
+    .red {
+      color: red;
+    }
+    .w100 {
+      width: 100px;
+    }
+    .h100 {
+      height: 100;
+    }
+    .bg {
+      background-color: bisque;
+    }
+  </style>
+</head>
+<body>
+  <div>
+    <h1>1.通过ele.className给html元素批量设置css样式</h1>
+    <div id="div1">red, ele.className</div>
+  </div>
+  <script>
+    var oDiv = document.getElementById('div1');
+    oDiv.className="red w100 bg h100";
+  </script>
+  <div>
+    <h2>2.通过ele.style.cssText给html元素批量设置css样式</h2>
+    <div id="div2">blue, ele.style.cssText</div>
+  </div>
+  <script>
+    var div2 = document.getElementById('div2');
+    div2.style.cssText = "background-color: lightblue; color: bule; width: 200px; height: 400px"
+  </script>
+</body>
+</html>

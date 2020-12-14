@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>两栏式布局</title>
+    <style>
+      * {
+        padding: 0;
+        margin: 0;
+      }
+      #grid {
+        display: grid;
+        grid-template-columns: minmax(150px, 25%) 1fr;
+        height: 100vh;
+      }
+      .left-side {
+        background: lightblue;
+      }
+      .right-side {
+        background: wheat;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="grid">
+      <div class="left-side">left-side</div>
+      <div class="right-side">right-side</div>
+    </div>
+  </body>
+</html>

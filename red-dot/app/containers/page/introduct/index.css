@@ -1,0 +1,31 @@
+article {
+  padding: 10px 0;
+  width: 900px;
+  text-indent: 20px;
+  text-align: justify;
+  font-size: 16px;
+}
+.title {
+  animation: showTitle 2s;
+  -webkit-animation: showTitle 2s;
+}
+@keyframes showTitle {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 100%;
+  }
+}
+.content {
+  animation: showContent 6s;
+  -webkit-animation: showContent 6s;
+}
+@keyframes showContent {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 100%;
+  }
+}

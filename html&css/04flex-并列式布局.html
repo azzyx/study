@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>04flex-并列式布局</title>
+    <style>
+      * {
+        padding: 0;
+        margin: 0;
+      }
+      #flex {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        height: 100vh;
+      }
+      #flex > div {
+        flex: 1 1 150px;
+      }
+      .left {
+        background: wheat;
+      }
+      .main {
+        background: lightblue;
+      }
+      .right {
+        background: wheat;
+      }
+      /* 
+        设为 Flex 布局以后，子元素的float、clear和vertical-align属性将失效。
+       */
+    </style>
+  </head>
+  <body>
+    <div id="flex">
+      <div class="left">1.left</div>
+      <div class="main">2.main</div>
+      <div class="right">3.right</div>
+    </div>
+  </body>
+</html>

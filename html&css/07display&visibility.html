@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style>
+      /* * {
+        padding: 0;
+        margin: 0;
+      } */
+      .display {
+        display: none;
+      }
+      .dis_son {
+        display: block;
+      }
+      .visibility {
+        visibility: hidden;
+      }
+      .vi_son {
+        visibility: visible;
+      }
+      /* 
+        验证了
+        display的子元素不能通过修改自身的display的属性改变父级设置的属性，
+        即：display: none为非继承属性，子孙节点消失由于元素从渲染树消失造成，通过修改子孙节点属性无法显示。
+        visiblity: hidden为继承属性，子孙节点由于继承了hidden而消失，通过设置visibility:visible，可以让子孙节点显示。
+       */
+    </style>
+  </head>
+  <body>
+    <div>
+      <h1>1.display</h1>
+      <div class="display">
+        <div class="dis_son">display的子元素</div>
+      </div>
+    </div>
+    <div>
+      <h1>2.visiblity</h1>
+      <div class="visibility">
+        <div class="vi_son">visibility的子元素</div>
+      </div>
+    </div>
+    <div class="ol">
+      <ol>
+        <li>内容1</li>
+        <li style="visibility: hidden;">内容2</li>
+        <li>内容3</li>
+      </ol>
+    </div>
+    <div class="ol">
+      <dl>
+        <dt>1</dt>
+        <dt style="visibility: hidden;">2</dt>
+        <dt>3</dt>
+      </dl>
+    </div>
+    <div class="ol">
+      <ol>
+        <li>内容1</li>
+        <li style="display: none;">内容2</li>
+        <li>内容3</li>
+      </ol>
+    </div>
+    <div>
+      1.修改常规流中的元素的display通常会造成文档重排。修改visibility属性只会造成本元素的重绘。
+    </div>
+    <div>
+      2.读屏器不会读取display:none元素内容，会读取visibility:hidden;元素内容
+    </div>
+  </body>
+</html>

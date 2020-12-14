@@ -1,0 +1,1637 @@
+import React from 'react';
+import { pickBy, compact } from 'lodash';
+import { Tabs, Icon } from 'antd';
+import {
+  DateTimeTranslate,
+  Translate,
+  Alert,
+  NumberFormat,
+  AutoEllipsis,
+  AgGrid,
+} from '@gza/quantex-design';
+import { msgCenter } from '@gza/quantex-utils';
+import OrderList from './OrderList';
+
+const TabPane = Tabs.TabPane;
+
+const orderStatusDictData = [
+  {
+    id: 1,
+    name: '新建',
+  },
+  {
+    id: 2,
+    name: '废单',
+  },
+  {
+    id: 3,
+    name: '已撤',
+  },
+  {
+    id: 4,
+    name: '检查通过',
+  },
+  {
+    id: 5,
+    name: '已报',
+  },
+  {
+    id: 6,
+    name: '撤消检查中',
+  },
+  {
+    id: 7,
+    name: '待撤',
+  },
+  {
+    id: 8,
+    name: '全成交',
+  },
+];
+
+class SingleOrder extends React.Component {
+  state = {
+    orderMap: new Map(),
+  };
+  api = this.props.api;
+  constructor(props) {
+    super(props);
+    this.initAgGrid();
+  }
+
+  componentDidMount() {
+    this.fetchOrderList(this.updateStockProcess);
+    this.token = msgCenter.subscribe('stock_orders_chg', (topic, data) => {
+      if ((data[0] && data[0].orderType === 1) || this.orderMap.has(data[0].orderId)) {
+        console.log('websocket stock_orders_chg_single', data);
+        // this.updateOrderList(data);
+        this.gridApi.setRowData([data]);
+      }
+    });
+  }
+
+  componentWillUnmount() {
+    msgCenter.unsubscribe(this.token);
+  }
+
+  updateStockProcess = (data = [], type = 'single-query') => {
+    msgCenter.publish('update-process', {
+      type,
+      value:
+        typeof data === 'number'
+          ? data
+          : data.reduce((x, y) => {
+              let stockQty = y.qty;
+              if (y.status === 2 || y.status === 3) {
+                stockQty = y.filledQty;
+              }
+              return x + stockQty;
+            }, 0),
+    });
+  };
+
+  updateOrder = record => {
+    let shouldUpdate = false;
+    if (this.orderMap.has(record.orderId)) {
+      const originRecord = this.orderMap.get(record.orderId);
+      if (record.updateTime > (originRecord.updateTime || 0)) {
+        shouldUpdate = true;
+        Object.assign(originRecord, record);
+        if (originRecord.status === 2 || originRecord.status === 3) {
+          this.updateStockProcess(originRecord.qty - originRecord.filledQty, 'single-cancel');
+        }
+      }
+    } else {
+      shouldUpdate = true;
+      this.orderMap = new Map(
+        [record, ...this.orderMap.values()].map(item => {
+          return [item.orderId, item];
+        })
+      );
+      this.updateStockProcess([record], 'single-push');
+    }
+    if (shouldUpdate) {
+      this.setState({
+        orderMap: this.orderMap,
+      });
+      // msgCenter publish new sum
+    }
+  };
+
+  updateOrderList = records => {
+    records.forEach(record => {
+      this.updateOrder(
+        pickBy(record, value => {
+          return value != null;
+        })
+      );
+    });
+  };
+
+  fetchOrderList = cb => {
+    const fundId = localStorage.getItem('qtw-fundId');
+    if (!fundId) return;
+    this.api
+      .get('/stock_order/single/{fundId}', {
+        fundId,
+      })
+      .then(res => {
+        if (res.code === 200) {
+          this.gridApi?.setRowData(res.data.list);
+        } else {
+          Alert.error(res.msg);
+        }
+      });
+  };
+
+  cancelOrder = record => {
+    const fundId = localStorage.getItem('qtw-fundId');
+    if (!fundId) return;
+    this.api
+      .post('/stock_order/cancel_single', {
+        fundId,
+        orderId: record.orderId,
+      })
+      .then(res => {
+        if (res.code === 500) {
+          Alert.error(res);
+        }
+      });
+  };
+
+  initAgGrid = () => {
+    const fundId = localStorage.getItem('qtw-fundId');
+    this.searchApi = AgGrid.createSearchApi({
+      api: this.api,
+      url: `/stock_order/single/${fundId}`,
+    });
+    this.tableConfig = {
+      tableId: AgGrid.Table.ID.system_performance_Stock_Entrust,
+      props: {
+        columnDefs: this.setSingleOrderColoumns(),
+        domLayout: 'autoHeight',
+        defaultColDef: {
+          width: 180,
+          filter: false,
+          sortable: true,
+          resizable: true,
+        },
+      },
+      onTableReady: tableStore => {
+        this.tableStore = tableStore;
+        this.gridApi = tableStore.getGridApi();
+      },
+    };
+  };
+
+  setSingleOrderColoumns = () => {
+    return [
+      {
+        headerName: '操作',
+        width: 50,
+        cellRendererFramework: ({ data }) => {
+          return (
+            <a
+              onClick={() => {
+                this.cancelOrder({ data });
+              }}
+              disabled={data.status !== 5}>
+              撤消
+            </a>
+          );
+        },
+      },
+      {
+        headerName: '委托ID',
+        width: 150,
+        field: 'orderId',
+      },
+      {
+        headerName: '委托时间',
+        width: 150,
+        field: 'createTime',
+        cellRendererFramework: ({ data }) => {
+          return <DateTimeTranslate value={data.createTime} />;
+        },
+      },
+      {
+        headerName: '策略',
+        width: 90,
+        field: 'strategyName',
+      },
+      {
+        headerName: '证券',
+        width: 180,
+        field: 'securityName',
+      },
+      {
+        headerName: '方向',
+        width: 50,
+        field: 'side',
+        cellRendererFramework: ({ data }) => {
+          return data.side === 1 ? '买入' : data.side === 2 ? '卖出' : '';
+        },
+      },
+      {
+        headerName: '委托数量',
+        width: 80,
+        align: 'right',
+        field: 'qty',
+        cellRendererFramework: ({ data }) => {
+          return (
+            <span>
+              <NumberFormat.IntegerFormat value={data.qty} />
+            </span>
+          );
+        },
+      },
+      {
+        headerName: '成交数量',
+        width: 80,
+        align: 'right',
+        field: 'filledQty',
+        cellRendererFramework: ({ data }) => {
+          return (
+            <span>
+              <NumberFormat.IntegerFormat value={data.filledQty} />
+            </span>
+          );
+        },
+      },
+      {
+        headerName: '委托价格',
+        width: 80,
+        align: 'right',
+        field: 'price',
+        cellRendererFramework: ({ data }) => {
+          return <span>{data.price ? <NumberFormat value={data.price} /> : '市价'}</span>;
+        },
+      },
+      {
+        headerName: '成交均价',
+        width: 80,
+        align: 'right',
+        field: 'avgFillePrice',
+        cellRendererFramework: ({ data }) => {
+          return (
+            <span>
+              <NumberFormat value={data.avgFillePrice} />
+            </span>
+          );
+        },
+      },
+      {
+        headerName: '状态',
+        width: 90,
+        field: 'status',
+        cellRendererFramework: ({ data }) => {
+          const { status } = data;
+          const name = orderStatusDictData.filter(function(item) {
+            return status == item.id;
+          });
+          return name[0].name;
+        },
+      },
+      {
+        headerName: '备注',
+        width: 300,
+        field: 'remark',
+        cellRendererFramework: ({ data }) => {
+          return <AutoEllipsis>{data.remark}</AutoEllipsis>;
+        },
+      },
+    ];
+  };
+
+  render() {
+    return (
+      <div>
+        <AgGrid.SearchTable
+          searchApi={this.searchApi}
+          tableConfig={this.tableConfig}
+          searchOnReady
+        />
+      </div>
+    );
+  }
+}
+
+// 组合委托
+class BatchOrder extends React.Component {
+  state = {
+    parentOrderMap: new Map(),
+  };
+  api = this.props.api;
+  constructor(props) {
+    super(props);
+    this.initAgGrid();
+  }
+  componentDidMount() {
+    this.fetchOrderList(this.updateStockProcess);
+    this.token = msgCenter.subscribe('stock_orders_chg', (topic, data) => {
+      if ((data[0] && data[0].orderType === 2) || this.orderMap.has(data[0].orderId)) {
+        console.log('websocket stock_orders_chg_batch', data);
+        this.updateOrderList(data);
+      }
+    });
+  }
+
+  componentWillUnmount() {
+    msgCenter.unsubscribe(this.token);
+  }
+
+  updateStockProcess = (data = [], type = 'batch-query') => {
+    msgCenter.publish('update-process', {
+      type,
+      value:
+        typeof data === 'number'
+          ? data
+          : data.reduce((x, y) => {
+              let stockQty = y.qty;
+              if (y.status === 2 || y.status === 3) {
+                stockQty = y.filledQty;
+              }
+              return x + stockQty;
+            }, 0),
+    });
+  };
+
+  updateOrder = record => {
+    let shouldUpdate = false;
+    const originRecord = this.orderMap.get(record.orderId);
+    let parentOrder = this.parentOrderMap.get(record.parentOrderId);
+    if (this.orderMap.has(record.orderId)) {
+      if (record.updateTime > (originRecord.updateTime || 0)) {
+        shouldUpdate = true;
+        // 更新子单以及母单
+        Object.assign(originRecord, record);
+        if (originRecord.status === 2 || originRecord.status === 3) {
+          this.updateStockProcess(originRecord.qty - originRecord.filledQty, 'batch-cancel');
+        }
+      }
+    } else {
+      shouldUpdate = true;
+      // 新加子单
+      this.orderMap = new Map(
+        [record, ...this.orderMap.values()].map(item => {
+          return [item.orderId, item];
+        })
+      );
+      this.updateStockProcess([record], 'batch-push');
+      if (!this.parentOrderMap.has(record.parentOrderId)) {
+        // 新加母单
+        this.parentOrderMap = new Map(
+          [{ ...record, items: [record], orderStatus: 1 }, ...this.parentOrderMap.values()].map(
+            item => {
+              return [item.parentOrderId, item];
+            }
+          )
+        );
+      } else {
+        parentOrder.items = parentOrder.items || [];
+        parentOrder.items.push(record);
+      }
+    }
+    if (shouldUpdate) {
+      parentOrder = this.parentOrderMap.get(record.parentOrderId || originRecord.parentOrderId);
+      const updateParentOrder = {
+        orderQty: 0,
+        filledQty: 0,
+        orderPrice: 0,
+        avgFilledPrice: 0,
+      };
+      // 重算母单的数据以及状态
+      parentOrder.items &&
+        parentOrder.items.forEach(item => {
+          updateParentOrder.orderQty += item.qty || 0;
+          updateParentOrder.filledQty += item.filledQty || 0;
+          updateParentOrder.orderPrice += item.price || 0;
+          updateParentOrder.avgFilledPrice += item.avgFillePrice / parentOrder.items.length || 0;
+        });
+      // 母单的状态更新
+      if (updateParentOrder.qty === updateParentOrder.filledQty) {
+        updateParentOrder.orderStatus = 8;
+      }
+      Object.assign(parentOrder, updateParentOrder);
+      this.setState({ parentOrderMap: this.parentOrderMap });
+      // msgCenter publish new sum
+    }
+  };
+
+  updateOrderList = (records = []) => {
+    records.forEach(record => {
+      this.updateOrder(
+        pickBy(record, value => {
+          return value != null;
+        })
+      );
+    });
+  };
+
+  fetchOrderList = cb => {
+    const fundId = localStorage.getItem('qtw-fundId');
+    if (!fundId) return;
+    this.api
+      .get('/stock_order/batch/{fundId}', {
+        fundId,
+      })
+      .then(res => {
+        if (res.code === 200) {
+          res = {
+            code: 200,
+            data: {
+              list: [
+                {
+                  parentOrderId: '45b16934-dcd6-4504-9327-fa9615e6ca9c',
+                  createTime: 1606959359000,
+                  strategyId: 'test5',
+                  strategyName: 'test5',
+                  orderMode: 1,
+                  orderModeValue: 100,
+                  portfolioId: '1',
+                  portfolioName: '1',
+                  side: 1,
+                  orderQty: 5000,
+                  filledQty: 5000,
+                  orderPrice: 56.83194000000001,
+                  avgFilledPrice: 51.77819999999998,
+                  orderStatus: 8,
+                  items: [
+                    {
+                      orderId: 'fcfe2e3e05bf46e8b513295be128cb2d',
+                      createTime: 1606959359000,
+                      strategyId: 'test5',
+                      strategyName: 'test5',
+                      securityId: '600016.SH',
+                      securityName: '600016.SH',
+                      side: 1,
+                      qty: 100,
+                      filledQty: 100,
+                      price: 5.907,
+                      avgFillePrice: 5.37,
+                      status: 8,
+                      updateTime: 1606959367064,
+                      remark: null,
+                    },
+                    {
+                      orderId: 'f81fcb42e1e643bd843e4aa9d74bd076',
+                      createTime: 1606959359000,
+                      strategyId: 'test5',
+                      strategyName: 'test5',
+                      securityId: '601328.SH',
+                      securityName: '601328.SH',
+                      side: 1,
+                      qty: 100,
+                      filledQty: 100,
+                      price: 5.214,
+                      avgFillePrice: 4.74,
+                      status: 8,
+                      updateTime: 1606959367192,
+                      remark: null,
+                    },
+                    {
+                      orderId: 'f53afb6dc8d24360b02aad5e2a2ef717',
+                      createTime: 1606959359000,
+                      strategyId: 'test5',
+                      strategyName: 'test5',
+                      securityId: '600036.SH',
+                      securityName: '600036.SH',
+                      side: 1,
+                      qty: 100,
+                      filledQty: 100,
+                      price: 51.48,
+                      avgFillePrice: 46.36,
+                      status: 8,
+                      updateTime: 1606959367150,
+                      remark: null,
+                    },
+                    {
+                      orderId: 'f35769df2a8240f7854f7d3325c293c4',
+                      createTime: 1606959359000,
+                      strategyId: 'test5',
+                      strategyName: 'test5',
+                      securityId: '601688.SH',
+                      securityName: '601688.SH',
+                      side: 1,
+                      qty: 100,
+                      filledQty: 100,
+                      price: 21.692,
+                      avgFillePrice: 19.68,
+                      status: 8,
+                      updateTime: 1606959367111,
+                      remark: null,
+                    },
+                    {
+                      orderId: 'f01fc45b9f1443f1962ecc96386102dd',
+                      createTime: 1606959359000,
+                      strategyId: 'test5',
+                      strategyName: 'test5',
+                      securityId: '601669.SH',
+                      securityName: '601669.SH',
+                      side: 1,
+                      qty: 100,
+                      filledQty: 100,
+                      price: 4.675,
+                      avgFillePrice: 4.23,
+                      status: 8,
+                      updateTime: 1606959367241,
+                      remark: null,
+                    },
+                    {
+                      orderId: 'eeb12124cb134a09b1254b0052b77676',
+                      createTime: 1606959359000,
+                      strategyId: 'test5',
+                      strategyName: 'test5',
+                      securityId: '601229.SH',
+                      securityName: '601229.SH',
+                      side: 1,
+                      qty: 100,
+                      filledQty: 100,
+                      price: 8.987,
+                      avgFillePrice: 8.17,
+                      status: 8,
+                      updateTime: 1606959367123,
+                      remark: null,
+                    },
+                    {
+                      orderId: 'e786f0fa86d24899a4fc4e60216de442',
+                      createTime: 1606959359000,
+                      strategyId: 'test5',
+                      strategyName: 'test5',
+                      securityId: '601088.SH',
+                      securityName: '601088.SH',
+                      side: 1,
+                      qty: 100,
+                      filledQty: 100,
+                      price: 21.989,
+                      avgFillePrice: 19.71,
+                      status: 8,
+                      updateTime: 1606959367211,
+                      remark: null,
+                    },
+                    {
+                      orderId: 'e5d54afda70b449eba13eed6887b634a',
+                      createTime: 1606959359000,
+                      strategyId: 'test5',
+                      strategyName: 'test5',
+                      securityId: '600340.SH',
+                      securityName: '600340.SH',
+                      side: 1,
+                      qty: 100,
+                      filledQty: 100,
+                      price: 16.445,
+                      avgFillePrice: 14.98,
+                      status: 8,
+                      updateTime: 1606959367179,
+                      remark: null,
+                    },
+                    {
+                      orderId: 'd803475196ea4de1a8d8ebb08cf40f75',
+                      createTime: 1606959359000,
+                      strategyId: 'test5',
+                      strategyName: 'test5',
+                      securityId: '600547.SH',
+                      securityName: '600547.SH',
+                      side: 1,
+                      qty: 100,
+                      filledQty: 100,
+                      price: 26.752,
+                      avgFillePrice: 24.39,
+                      status: 8,
+                      updateTime: 1606959367160,
+                      remark: null,
+                    },
+                    {
+                      orderId: 'ca522a59b8ec40aa8fd6fb74a5a16183',
+                      createTime: 1606959359000,
+                      strategyId: 'test5',
+                      strategyName: 'test5',
+                      securityId: '601985.SH',
+                      securityName: '601985.SH',
+                      side: 1,
+                      qty: 100,
+                      filledQty: 100,
+                      price: 5.401,
+                      avgFillePrice: 4.89,
+                      status: 8,
+                      updateTime: 1606959367119,
+                      remark: null,
+                    },
+                    {
+                      orderId: 'c6f32ce002ab4814ac279eb081962288',
+                      createTime: 1606959359000,
+                      strategyId: 'test5',
+                      strategyName: 'test5',
+                      securityId: '601336.SH',
+                      securityName: '601336.SH',
+                      side: 1,
+                      qty: 100,
+                      filledQty: 100,
+                      price: 70.125,
+                      avgFillePrice: 63.31,
+                      status: 8,
+                      updateTime: 1606959367253,
+                      remark: null,
+                    },
+                    {
+                      orderId: 'c5a3246cd4df4cb28be021eddcad4c36',
+                      createTime: 1606959359000,
+                      strategyId: 'test5',
+                      strategyName: 'test5',
+                      securityId: '601800.SH',
+                      securityName: '601800.SH',
+                      side: 1,
+                      qty: 100,
+                      filledQty: 100,
+                      price: 8.789,
+                      avgFillePrice: 7.95,
+                      status: 8,
+                      updateTime: 1606959366139,
+                      remark: null,
+                    },
+                    {
+                      orderId: 'c3a1d9203aa54e358ce28495b96f2663',
+                      createTime: 1606959359000,
+                      strategyId: 'test5',
+                      strategyName: 'test5',
+                      securityId: '600029.SH',
+                      securityName: '600029.SH',
+                      side: 1,
+                      qty: 100,
+                      filledQty: 100,
+                      price: 7.183,
+                      avgFillePrice: 6.53,
+                      status: 8,
+                      updateTime: 1606959367139,
+                      remark: null,
+                    },
+                    {
+                      orderId: 'b831db0ba4d24530a40d90fc8a40d132',
+                      createTime: 1606959359000,
+                      strategyId: 'test5',
+                      strategyName: 'test5',
+                      securityId: '600837.SH',
+                      securityName: '600837.SH',
+                      side: 1,
+                      qty: 100,
+                      filledQty: 100,
+                      price: 15.081,
+                      avgFillePrice: 13.71,
+                      status: 8,
+                      updateTime: 1606959367281,
+                      remark: null,
+                    },
+                    {
+                      orderId: 'b2eef0b39ef14bfaa581fb457448db01',
+                      createTime: 1606959359000,
+                      strategyId: 'test5',
+                      strategyName: 'test5',
+                      securityId: '601878.SH',
+                      securityName: '601878.SH',
+                      side: 1,
+                      qty: 100,
+                      filledQty: 100,
+                      price: 18.348,
+                      avgFillePrice: 16.55,
+                      status: 8,
+                      updateTime: 1606959367216,
+                      remark: null,
+                    },
+                    {
+                      orderId: 'b1dd1de8776243e6944fb37a0f261fbd',
+                      createTime: 1606959359000,
+                      strategyId: 'test5',
+                      strategyName: 'test5',
+                      securityId: '601390.SH',
+                      securityName: '601390.SH',
+                      side: 1,
+                      qty: 100,
+                      filledQty: 100,
+                      price: 6.358,
+                      avgFillePrice: 5.77,
+                      status: 8,
+                      updateTime: 1606959367089,
+                      remark: null,
+                    },
+                    {
+                      orderId: 'ae6f0c27421b4e0e9aad3b6d6dd670bc',
+                      createTime: 1606959359000,
+                      strategyId: 'test5',
+                      strategyName: 'test5',
+                      securityId: '601818.SH',
+                      securityName: '601818.SH',
+                      side: 1,
+                      qty: 100,
+                      filledQty: 100,
+                      price: 4.785,
+                      avgFillePrice: 4.34,
+                      status: 8,
+                      updateTime: 1606959367187,
+                      remark: null,
+                    },
+                    {
+                      orderId: 'ad0bc8b6dbed436986bdbf0a7421e882',
+                      createTime: 1606959359000,
+                      strategyId: 'test5',
+                      strategyName: 'test5',
+                      securityId: '600028.SH',
+                      securityName: '600028.SH',
+                      side: 1,
+                      qty: 100,
+                      filledQty: 100,
+                      price: 4.642,
+                      avgFillePrice: 4.25,
+                      status: 8,
+                      updateTime: 1606959367159,
+                      remark: null,
+                    },
+                    {
+                      orderId: 'a9ede3bef4114ec9b02a2ebfbec2ad39',
+                      createTime: 1606959359000,
+                      strategyId: 'test5',
+                      strategyName: 'test5',
+                      securityId: '603993.SH',
+                      securityName: '603993.SH',
+                      side: 1,
+                      qty: 100,
+                      filledQty: 100,
+                      price: 5.115,
+                      avgFillePrice: 4.58,
+                      status: 8,
+                      updateTime: 1606959367097,
+                      remark: null,
+                    },
+                    {
+                      orderId: 'a06ca607abbd4a27b806fe4bd2c8b731',
+                      createTime: 1606959359000,
+                      strategyId: 'test5',
+                      strategyName: 'test5',
+                      securityId: '600019.SH',
+                      securityName: '600019.SH',
+                      side: 1,
+                      qty: 100,
+                      filledQty: 100,
+                      price: 7.117,
+                      avgFillePrice: 6.37,
+                      status: 8,
+                      updateTime: 1606959366108,
+                      remark: null,
+                    },
+                    {
+                      orderId: '9f7c5d3cb38d469cb9838af374a9c9d2',
+                      createTime: 1606959359000,
+                      strategyId: 'test5',
+                      strategyName: 'test5',
+                      securityId: '600030.SH',
+                      securityName: '600030.SH',
+                      side: 1,
+                      qty: 100,
+                      filledQty: 100,
+                      price: 34.188,
+                      avgFillePrice: 30.95,
+                      status: 8,
+                      updateTime: 1606959367168,
+                      remark: null,
+                    },
+                    {
+                      orderId: '9e84a01eff0145a480fce4bdb59559b0',
+                      createTime: 1606959359000,
+                      strategyId: 'test5',
+                      strategyName: 'test5',
+                      securityId: '600048.SH',
+                      securityName: '600048.SH',
+                      side: 1,
+                      qty: 100,
+                      filledQty: 100,
+                      price: 19.107,
+                      avgFillePrice: 17.25,
+                      status: 8,
+                      updateTime: 1606959366147,
+                      remark: null,
+                    },
+                    {
+                      orderId: '97cb43bee79747bc9a0e2383e5df9ab5',
+                      createTime: 1606959359000,
+                      strategyId: 'test5',
+                      strategyName: 'test5',
+                      securityId: '601318.SH',
+                      securityName: '601318.SH',
+                      side: 1,
+                      qty: 100,
+                      filledQty: 100,
+                      price: 102.135,
+                      avgFillePrice: 92.69,
+                      status: 8,
+                      updateTime: 1606959367165,
+                      remark: null,
+                    },
+                    {
+                      orderId: '93fbbe0be4984a20bb2aba4c18496570',
+                      createTime: 1606959359000,
+                      strategyId: 'test5',
+                      strategyName: 'test5',
+                      securityId: '601989.SH',
+                      securityName: '601989.SH',
+                      side: 1,
+                      qty: 100,
+                      filledQty: 100,
+                      price: 4.818,
+                      avgFillePrice: 4.36,
+                      status: 8,
+                      updateTime: 1606959366153,
+                      remark: null,
+                    },
+                    {
+                      orderId: '90d595bfec324913862d83354c0a5be8',
+                      createTime: 1606959359000,
+                      strategyId: 'test5',
+                      strategyName: 'test5',
+                      securityId: '600000.SH',
+                      securityName: '600000.SH',
+                      side: 1,
+                      qty: 100,
+                      filledQty: 100,
+                      price: 11.275,
+                      avgFillePrice: 10.22,
+                      status: 8,
+                      updateTime: 1606959366192,
+                      remark: null,
+                    },
+                    {
+                      orderId: '8c4eb797e3e44641a96f3872c57d3a9f',
+                      createTime: 1606959359000,
+                      strategyId: 'test5',
+                      strategyName: 'test5',
+                      securityId: '601288.SH',
+                      securityName: '601288.SH',
+                      side: 1,
+                      qty: 100,
+                      filledQty: 100,
+                      price: 3.663,
+                      avgFillePrice: 3.33,
+                      status: 8,
+                      updateTime: 1606959367138,
+                      remark: null,
+                    },
+                    {
+                      orderId: '8c31d602f0954de8b39cfee871b5ef42',
+                      createTime: 1606959359000,
+                      strategyId: 'test5',
+                      strategyName: 'test5',
+                      securityId: '601166.SH',
+                      securityName: '601166.SH',
+                      side: 1,
+                      qty: 100,
+                      filledQty: 100,
+                      price: 23.43,
+                      avgFillePrice: 21.31,
+                      status: 8,
+                      updateTime: 1606959367066,
+                      remark: null,
+                    },
+                    {
+                      orderId: '85900e95a4ea4766bf1a207d4f88200e',
+                      createTime: 1606959359000,
+                      strategyId: 'test5',
+                      strategyName: 'test5',
+                      securityId: '601186.SH',
+                      securityName: '601186.SH',
+                      side: 1,
+                      qty: 100,
+                      filledQty: 100,
+                      price: 9.592,
+                      avgFillePrice: 8.7,
+                      status: 8,
+                      updateTime: 1606959366148,
+                      remark: null,
+                    },
+                    {
+                      orderId: '82c8b34a52a84eac88b0e296dc40aad1',
+                      createTime: 1606959359000,
+                      strategyId: 'test5',
+                      strategyName: 'test5',
+                      securityId: '600111.SH',
+                      securityName: '600111.SH',
+                      side: 1,
+                      qty: 100,
+                      filledQty: 100,
+                      price: 14.883,
+                      avgFillePrice: 13.25,
+                      status: 8,
+                      updateTime: 1606959366110,
+                      remark: null,
+                    },
+                    {
+                      orderId: '81fa495e30ed4463ac3e125c37f79698',
+                      createTime: 1606959359000,
+                      strategyId: 'test5',
+                      strategyName: 'test5',
+                      securityId: '600309.SH',
+                      securityName: '600309.SH',
+                      side: 1,
+                      qty: 100,
+                      filledQty: 100,
+                      price: 91.256,
+                      avgFillePrice: 82.96,
+                      status: 8,
+                      updateTime: 1606959367265,
+                      remark: null,
+                    },
+                    {
+                      orderId: '801bbe14d0834122a44e874f6f4ae1cb',
+                      createTime: 1606959359000,
+                      strategyId: 'test5',
+                      strategyName: 'test5',
+                      securityId: '601628.SH',
+                      securityName: '601628.SH',
+                      side: 1,
+                      qty: 100,
+                      filledQty: 100,
+                      price: 46.695,
+                      avgFillePrice: 42.08,
+                      status: 8,
+                      updateTime: 1606959366131,
+                      remark: null,
+                    },
+                    {
+                      orderId: '780cc8c3e8674352b50770eb92f0429b',
+                      createTime: 1606959359000,
+                      strategyId: 'test5',
+                      strategyName: 'test5',
+                      securityId: '600104.SH',
+                      securityName: '600104.SH',
+                      side: 1,
+                      qty: 100,
+                      filledQty: 100,
+                      price: 28.281,
+                      avgFillePrice: 25.82,
+                      status: 8,
+                      updateTime: 1606959366134,
+                      remark: null,
+                    },
+                    {
+                      orderId: '7470470053de45a9b6202d154ef2009d',
+                      createTime: 1606959359000,
+                      strategyId: 'test5',
+                      strategyName: 'test5',
+                      securityId: '600887.SH',
+                      securityName: '600887.SH',
+                      side: 1,
+                      qty: 100,
+                      filledQty: 100,
+                      price: 42.394,
+                      avgFillePrice: 38.64,
+                      status: 8,
+                      updateTime: 1606959367174,
+                      remark: null,
+                    },
+                    {
+                      orderId: '6c90529ef34747f8843c2366c4089ff4',
+                      createTime: 1606959359000,
+                      strategyId: 'test5',
+                      strategyName: 'test5',
+                      securityId: '601857.SH',
+                      securityName: '601857.SH',
+                      side: 1,
+                      qty: 100,
+                      filledQty: 100,
+                      price: 4.73,
+                      avgFillePrice: 4.32,
+                      status: 8,
+                      updateTime: 1606959367146,
+                      remark: null,
+                    },
+                    {
+                      orderId: '66ccd15a79d448c7bb8a524bd4065fa0',
+                      createTime: 1606959359000,
+                      strategyId: 'test5',
+                      strategyName: 'test5',
+                      securityId: '600519.SH',
+                      securityName: '600519.SH',
+                      side: 1,
+                      qty: 100,
+                      filledQty: 100,
+                      price: 1911.811,
+                      avgFillePrice: 1746.66,
+                      status: 8,
+                      updateTime: 1606959367229,
+                      remark: null,
+                    },
+                    {
+                      orderId: '560487120cb142c3b031f3f5f7630315',
+                      createTime: 1606959359000,
+                      strategyId: 'test5',
+                      strategyName: 'test5',
+                      securityId: '600958.SH',
+                      securityName: '600958.SH',
+                      side: 1,
+                      qty: 100,
+                      filledQty: 100,
+                      price: 13.123,
+                      avgFillePrice: 11.94,
+                      status: 8,
+                      updateTime: 1606959367080,
+                      remark: null,
+                    },
+                    {
+                      orderId: '50e41205939845cf9f759969fda4c929',
+                      createTime: 1606959359000,
+                      strategyId: 'test5',
+                      strategyName: 'test5',
+                      securityId: '600050.SH',
+                      securityName: '600050.SH',
+                      side: 1,
+                      qty: 100,
+                      filledQty: 100,
+                      price: 5.412,
+                      avgFillePrice: 4.9,
+                      status: 8,
+                      updateTime: 1606959366116,
+                      remark: null,
+                    },
+                    {
+                      orderId: '4f7f2ef1cb5a480d85fab700de4a5b53',
+                      createTime: 1606959359000,
+                      strategyId: 'test5',
+                      strategyName: 'test5',
+                      securityId: '601211.SH',
+                      securityName: '601211.SH',
+                      side: 1,
+                      qty: 100,
+                      filledQty: 100,
+                      price: 21.098,
+                      avgFillePrice: 19.22,
+                      status: 8,
+                      updateTime: 1606959367175,
+                      remark: null,
+                    },
+                    {
+                      orderId: '43f0ee0e8a26451ab3f6449d2623b96d',
+                      createTime: 1606959359000,
+                      strategyId: 'test5',
+                      strategyName: 'test5',
+                      securityId: '601668.SH',
+                      securityName: '601668.SH',
+                      side: 1,
+                      qty: 100,
+                      filledQty: 100,
+                      price: 6.05,
+                      avgFillePrice: 5.49,
+                      status: 8,
+                      updateTime: 1606959366158,
+                      remark: null,
+                    },
+                    {
+                      orderId: '3fa7d11957084d4c879bafbe0f5afd22',
+                      createTime: 1606959359000,
+                      strategyId: 'test5',
+                      strategyName: 'test5',
+                      securityId: '600606.SH',
+                      securityName: '600606.SH',
+                      side: 1,
+                      qty: 100,
+                      filledQty: 100,
+                      price: 7.304,
+                      avgFillePrice: 6.59,
+                      status: 8,
+                      updateTime: 1606959367119,
+                      remark: null,
+                    },
+                    {
+                      orderId: '3ed15232552e4ffe93adef0d16b07e82',
+                      createTime: 1606959359000,
+                      strategyId: 'test5',
+                      strategyName: 'test5',
+                      securityId: '601601.SH',
+                      securityName: '601601.SH',
+                      side: 1,
+                      qty: 100,
+                      filledQty: 100,
+                      price: 43.208,
+                      avgFillePrice: 39.34,
+                      status: 8,
+                      updateTime: 1606959367154,
+                      remark: null,
+                    },
+                    {
+                      orderId: '33403726b4684398b324317f26eed379',
+                      createTime: 1606959359000,
+                      strategyId: 'test5',
+                      strategyName: 'test5',
+                      securityId: '600919.SH',
+                      securityName: '600919.SH',
+                      side: 1,
+                      qty: 100,
+                      filledQty: 100,
+                      price: 6.985,
+                      avgFillePrice: 6.37,
+                      status: 8,
+                      updateTime: 1606959366176,
+                      remark: null,
+                    },
+                    {
+                      orderId: '321cc3a18ad347d68855f873c41deeeb',
+                      createTime: 1606959359000,
+                      strategyId: 'test5',
+                      strategyName: 'test5',
+                      securityId: '601988.SH',
+                      securityName: '601988.SH',
+                      side: 1,
+                      qty: 100,
+                      filledQty: 100,
+                      price: 3.663,
+                      avgFillePrice: 3.34,
+                      status: 8,
+                      updateTime: 1606959367064,
+                      remark: null,
+                    },
+                    {
+                      orderId: '2fe9c06967fe46af9cc976fc0188ae33',
+                      createTime: 1606959359000,
+                      strategyId: 'test5',
+                      strategyName: 'test5',
+                      securityId: '601398.SH',
+                      securityName: '601398.SH',
+                      side: 1,
+                      qty: 100,
+                      filledQty: 100,
+                      price: 5.995,
+                      avgFillePrice: 5.44,
+                      status: 8,
+                      updateTime: 1606959367073,
+                      remark: null,
+                    },
+                    {
+                      orderId: '2871185cbc37467d91bfd27d32de5ab4',
+                      createTime: 1606959359000,
+                      strategyId: 'test5',
+                      strategyName: 'test5',
+                      securityId: '601006.SH',
+                      securityName: '601006.SH',
+                      side: 1,
+                      qty: 100,
+                      filledQty: 100,
+                      price: 7.59,
+                      avgFillePrice: 6.89,
+                      status: 8,
+                      updateTime: 1606959367103,
+                      remark: null,
+                    },
+                    {
+                      orderId: '229833728311484ebc2b45a8bb353b57',
+                      createTime: 1606959359000,
+                      strategyId: 'test5',
+                      strategyName: 'test5',
+                      securityId: '601169.SH',
+                      securityName: '601169.SH',
+                      side: 1,
+                      qty: 100,
+                      filledQty: 100,
+                      price: 5.522,
+                      avgFillePrice: 5.02,
+                      status: 8,
+                      updateTime: 1606959366135,
+                      remark: null,
+                    },
+                    {
+                      orderId: '20e9d2276dc142249923d9e5f340b7cb',
+                      createTime: 1606959359000,
+                      strategyId: 'test5',
+                      strategyName: 'test5',
+                      securityId: '600999.SH',
+                      securityName: '600999.SH',
+                      side: 1,
+                      qty: 100,
+                      filledQty: 100,
+                      price: 26.796,
+                      avgFillePrice: 23.95,
+                      status: 8,
+                      updateTime: 1606959367203,
+                      remark: null,
+                    },
+                    {
+                      orderId: '1ea51d1480fe4766900c0b7b5434f3c9',
+                      createTime: 1606959359000,
+                      strategyId: 'test5',
+                      strategyName: 'test5',
+                      securityId: '600518.SH',
+                      securityName: '600518.SH',
+                      side: 1,
+                      qty: 100,
+                      filledQty: 100,
+                      price: 3.311,
+                      avgFillePrice: 2.99,
+                      status: 8,
+                      updateTime: 1606959367188,
+                      remark: null,
+                    },
+                    {
+                      orderId: '18699fd7b460417f824792c210ff1fba',
+                      createTime: 1606959359000,
+                      strategyId: 'test5',
+                      strategyName: 'test5',
+                      securityId: '601881.SH',
+                      securityName: '601881.SH',
+                      side: 1,
+                      qty: 100,
+                      filledQty: 100,
+                      price: 14.905,
+                      avgFillePrice: 13.31,
+                      status: 8,
+                      updateTime: 1606959367142,
+                      remark: null,
+                    },
+                    {
+                      orderId: '0edc40fa02554eeba966d4835c72a0c3',
+                      createTime: 1606959359000,
+                      strategyId: 'test5',
+                      strategyName: 'test5',
+                      securityId: '601766.SH',
+                      securityName: '601766.SH',
+                      side: 1,
+                      qty: 100,
+                      filledQty: 100,
+                      price: 6.292,
+                      avgFillePrice: 5.7,
+                      status: 8,
+                      updateTime: 1606959367079,
+                      remark: null,
+                    },
+                  ],
+                },
+              ],
+              totalRecord: 1,
+            },
+            msg: '获取组合委托成功',
+            errCode: null,
+          };
+          this.gridApi?.setRowData(res.data.list);
+        } else {
+          Alert.error(res.msg);
+        }
+      });
+  };
+
+  cancelOrder = record => {
+    const fundId = localStorage.getItem('qtw-fundId');
+    if (!fundId) return;
+    const isBatch = record.items && record.items.length;
+    const requestUrl = isBatch ? '/stock_order/cancel_portfolio' : '/stock_order/cancel_single';
+    this.api
+      .post(requestUrl, {
+        fundId,
+        [isBatch ? 'parentOrderId' : 'orderId']: isBatch ? record.parentOrderId : record.orderId,
+      })
+      .then(res => {
+        if (res.code === 500) {
+          Alert.error(res);
+        }
+      });
+  };
+
+  initAgGrid = () => {
+    const fundId = localStorage.getItem('qtw-fundId');
+    if (!fundId) return;
+    this.searchApi = AgGrid.createSearchApi({
+      api: '',
+      url: `/stock_order/batch/${fundId}`,
+    });
+    this.tableConfig = {
+      tableId: AgGrid.Table.ID.system_performance_Stock_Entrust_BatchOrder,
+      props: {
+        rowData: [],
+        columnDefs: this.setColunms(),
+        domLayout: 'autoHeight',
+        defaultColDef: {
+          width: 180,
+          filter: false,
+          sortable: true,
+          resizable: true,
+        },
+        masterDetail: true,
+        getRowNodeId: data => data.id, // todo id 字段
+        // 子表格配置
+        masterDetail: true,
+        detailCellRendererParams: {
+          detailGridOptions: {
+            columnDefs: this.getDetailColumns(),
+            onFirstDataRendered: ({ api }) => {
+              api.sizeColumnsToFit();
+            },
+          },
+          getDetailRowData: function(params) {
+            params.successCallback(params.data.callRecords);
+        }
+        },
+      },
+      onTableReady: tableStore => {
+        this.tableStore = tableStore;
+        this.gridApi = tableStore.getGridApi();
+        // this.gridApi.setRowData(res.data.list);
+      },
+    };
+  };
+
+  setColunms = () => {
+    const columns = compact([
+      {
+        headerName: '操作',
+        width: 80,
+        // cellRenderer: 'agGroupCellRenderer',
+        cellRendererFramework: ({ data }) => {
+          return (
+            <a
+              onClick={() => {
+                this.cancelOrder(data);
+              }}
+              // disabled={
+              //   data.orderStatus !== 1 ||
+              //   data.items.filter(item => {
+              //     return item.status === 5;
+              //   }).length === 0
+              // }
+            >
+              撤消
+            </a>
+          );
+        },
+      },
+      {
+        headerName: '委托时间',
+        width: 180,
+        field: 'createTime',
+        cellRendererFramework: ({ data }) => {
+          return <DateTimeTranslate value={data.createTime} />;
+        },
+      },
+      {
+        headerName: '策略',
+        width: 120,
+        field: 'strategyName',
+        // dict: {
+        //   url: '/dict/strategy/strategy_id/name',
+        //   sit: '',
+        // },
+      },
+      {
+        headerName: '证券/组合',
+        width: 150,
+        field: 'portfolioId',
+        dict: {
+          url: '//dict/portfolio/portfolio_id/name',
+          site: '',
+        },
+      },
+      {
+        headerName: '组合模式',
+        width: 150,
+        cellRendererFramework: ({ data }) => {
+          return `${data.orderMode === 1 ? '等额委托' : data.orderMode}(${data.orderModeValue})`;
+        },
+      },
+      {
+        headerName: '方向',
+        width: 50,
+        field: 'side',
+        cellRendererFramework: ({ data }) => {
+          const { side } = data;
+          return side === 1 ? '买入' : side === 2 ? '卖出' : '';
+        },
+      },
+      {
+        headerName: '委托数量/成交数量',
+        width: 150,
+        align: 'right',
+        cellRendererFramework: ({ data }) => {
+          return (
+            <span>
+              <NumberFormat.IntegerFormat value={data.orderQty} />/
+              <NumberFormat.IntegerFormat value={data.filledQty} />
+            </span>
+          );
+        },
+      },
+      {
+        headerName: '委托价格/成交均价',
+        width: 150,
+        align: 'right',
+        cellRendererFramework: ({ data }) => {
+          return (
+            <span>
+              {data.orderPrice ? <NumberFormat value={data.orderPrice} /> : '市价'}/
+              <NumberFormat value={data.avgFilledPrice} />
+            </span>
+          );
+        },
+      },
+      {
+        headerName: '状态',
+        width: 90,
+        field: 'orderStatus',
+        cellRendererFramework: ({ data }) => {
+          const { orderStatus } = data;
+          const name = orderStatusDictData.filter(function(item) {
+            return orderStatus == item.id;
+          });
+          return name[0].name;
+        },
+      },
+    ]);
+    return columns;
+  };
+
+  // 子表格列配置
+  getDetailColumns = () => {
+    return [
+      {
+        headerName: '操作',
+        width: 80,
+        cellRendererFramework: ({ data }) => {
+          return (
+            <a
+              onClick={() => {
+                this.cancelOrder(data);
+              }}
+              disabled={data.status !== 5}>
+              撤消
+            </a>
+          );
+        },
+      },
+      {
+        headerName: '委托ID',
+        width: 150,
+        field: 'orderId',
+      },
+      {
+        headerName: '时间',
+        width: 160,
+        field: 'createTime',
+        cellRendererFramework: ({ data }) => {
+          return <DateTimeTranslate value={data.createTime} />;
+        },
+      },
+      {
+        headerName: '证券',
+        width: 200,
+        field: 'securityName',
+      },
+      {
+        headerName: '委托数量',
+        width: 80,
+        align: 'right',
+        field: 'qty',
+        cellRendererFramework: ({ data }) => {
+          return (
+            <span>
+              <NumberFormat.IntegerFormat value={data.qty} />
+            </span>
+          );
+        },
+      },
+      {
+        headerName: '成交数量',
+        width: 80,
+        align: 'right',
+        field: 'filledQty',
+        cellRendererFramework: ({ data }) => {
+          return (
+            <span>
+              <NumberFormat.IntegerFormat value={data.filledQty} />
+            </span>
+          );
+        },
+      },
+      {
+        headerName: '委托价格',
+        width: 80,
+        align: 'right',
+        field: 'price',
+        cellRendererFramework: ({ data }) => {
+          return <span>{data.price ? <NumberFormat value={data.price} /> : '市价'}</span>;
+        },
+      },
+      {
+        headerName: '成交均价',
+        width: 80,
+        align: 'right',
+        field: 'avgFillePrice',
+        cellRendererFramework: ({ data }) => {
+          return (
+            <span>
+              <NumberFormat value={data.avgFillePrice} />
+            </span>
+          );
+        },
+      },
+      {
+        headerName: '状态',
+        field: 'status',
+        width: 90,
+        // cellRendererFramework: ({ data }) => {
+        //   return (
+        //     <Translate
+        //       dictData={orderStatusDictData}
+        //       value={data.status}
+        //       preHandleDictData={list => {
+        //         data.status = list;
+        //         return list;
+        //       }}
+        //     />
+        //   );
+        // },
+      },
+      {
+        headerName: '备注',
+        width: 300,
+        field: 'remark',
+        cellRendererFramework: ({ data }) => {
+          return <AutoEllipsis>{data.remark}</AutoEllipsis>;
+        },
+      },
+    ];
+  };
+
+  render() {
+    return (
+      <div>
+        <AgGrid.SearchTable
+          searchApi={this.searchApi}
+          tableConfig={this.tableConfig}
+          searchOnReady
+        />
+      </div>
+    );
+  }
+}
+
+class OrderComponent extends React.Component {
+  modal = this.props.modal;
+  render() {
+    const personalTab = (
+      <span>
+        个股委托&nbsp;&nbsp;
+        <Icon
+          type="reload"
+          onClick={() => {
+            this.singleOrder && this.singleOrder.fetchOrderList();
+          }}
+        />
+      </span>
+    );
+    const groupTab = (
+      <span>
+        组合委托&nbsp;&nbsp;
+        <Icon
+          type="reload"
+          onClick={() => {
+            this.batchOrder && this.batchOrder.fetchOrderList();
+          }}
+        />
+      </span>
+    );
+    const executionTab = (
+      <span>
+        成交&nbsp;&nbsp;
+        <Icon
+          type="reload"
+          onClick={() => {
+            this.execution && this.execution.fetchOrderList();
+          }}
+        />
+      </span>
+    );
+    return (
+      <Tabs defaultActiveKey="personal">
+        <TabPane tab={personalTab} key="personal">
+          <SingleOrder
+            ref={comp => {
+              this.singleOrder = comp;
+            }}
+            api={this.props.api}
+            modal={this.props.modal}
+          />
+        </TabPane>
+        <TabPane tab={groupTab} key="group" forceRender>
+          <BatchOrder
+            ref={comp => {
+              this.batchOrder = comp;
+            }}
+            api={this.props.api}
+            modal={this.props.modal}
+          />
+        </TabPane>
+        <TabPane tab={executionTab} key="execution" forceRender>
+          <OrderList
+            ref={comp => {
+              this.execution = comp;
+            }}
+            api={this.props.api}
+          />
+        </TabPane>
+      </Tabs>
+    );
+  }
+}
+
+export default OrderComponent;
