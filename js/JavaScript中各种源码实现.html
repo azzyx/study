@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>JavaScript中各种源码实现</title>
+  </head>
+  <body>
+    <a href="https://juejin.cn/post/6844904090187595790#heading-6">JavaScript中各种源码实现</a>
+    <script>
+      // 实现一个new操作符
+      /**
+        1. 创建一个空的简单JavaScript对象（即{}）;
+        2. 连接该对象（即设该对象的构造函数到另一个对象）；
+        3. 将步骤（1）新创建的对象作为this的上下文
+        4. 如果该函数没有返回对象，则返回this。
+      */
+      function create(Con, ...args) {
+        // 创建一个空的对象
+        this.obj = {};
+        // 将空对象指向构造函数的原型链
+        Object.setPrototypeOf(this.obj, Con.prototype);
+        // obj绑定到构造函数上，遍可以访问构造函数中的属性，即this.obj.Con(args)
+        let result = Con.apply(this.obj, args);
+        // 如果返回的result是一个对象则返回
+        // new方法失效，否则返回obj
+        return result instanceof Object ? result : this.obj;
+      }
+    </script>
+  </body>
+</html>

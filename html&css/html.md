@@ -20,3 +20,5 @@ DTD
 ### 8.前端文档收集 [](https://segmentfault.com/a/1190000011008253?utm_source=sf-related)
 
 ### 9.面试 [](https://github.com/coffe1891/frontend-hard-mode-interview) [](https://yanhaijing.com/css/2014/05/17/12-little-known-css-facts/)
+
+### 10.简历[](https://juejin.cn/post/6844903879973273607)

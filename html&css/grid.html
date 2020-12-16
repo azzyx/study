@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>grid</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+      }
+      .container {
+        display: grid;
+        /* fr 均分剩下的内容的宽度 */
+        grid-template-columns: 150px 1fr 1fr;
+        grid-template-rows: 100px 1fr 2fr;
+      }
+      .container > div:nth-child(odd) {
+        background: lightblue;
+      }
+      .con_12 {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        /* grid-row-gap: 20px; */
+        gap: 20px 10px;
+      }
+      .con_12 > div {
+        background-color: bisque;
+        margin-right: 2px;
+      }
+    </style>
+  </head>
+  <body>
+    <div>
+      <span>grid</span>
+      <div class="container">
+        <div><span>1</span></div>
+        <div><span>2</span></div>
+        <div><span>3</span></div>
+        <div><span>4</span></div>
+        <div><span>5</span></div>
+        <div><span>6</span></div>
+        <div><span>7</span></div>
+        <div><span>8</span></div>
+      </div>
+    </div>
+    <div class="con_12">
+      <div>1</div>
+      <div>1</div>
+      <div>1</div>
+      <div>1</div>
+      <div>1</div>
+      <div>1</div>
+      <div>1</div>
+      <div>1</div>
+      <div>1</div>
+      <div>1</div>
+      <div>1</div>
+      <div>1</div>
+    </div>
+  </body>
+</html>
