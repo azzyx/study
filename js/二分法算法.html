@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>二分法算法</title>
+  </head>
+  <body>
+    <script>
+      // 二分法
+      var searchInsert = function (nums, target) {
+        let left = 0;
+        let right = nums.length - 1;
+        while (left <= right) {
+          const mid = (left + right) >> 1;
+          if (nums[mid] === target) return mid;
+          if (nums[mid] < target) {
+            let = mid + 1;
+          } else {
+            right = mid - 1;
+          }
+        }
+        return left;
+      };
+    </script>
+  </body>
+</html>

@@ -6,7 +6,9 @@
     <title>JavaScript中各种源码实现</title>
   </head>
   <body>
-    <a href="https://juejin.cn/post/6844904090187595790#heading-6">JavaScript中各种源码实现</a>
+    <a href="https://juejin.cn/post/6844904090187595790#heading-6"
+      >JavaScript中各种源码实现</a
+    >
     <script>
       // 实现一个new操作符
       /**
@@ -26,6 +28,40 @@
         // new方法失效，否则返回obj
         return result instanceof Object ? result : this.obj;
       }
+
+      function myNew(fn) {
+        let obj = {};
+        obj.__proto__ = fn.prototype;
+        let r = fn.call(obj);
+        return typeof r === "object" ? r : obj;
+      }
+      console.log(myNew.prototype.constructor == myNew);
+
+      // call 方法是Function的一个原型方法，可以改变传入函数的this的指向。
+      Function.prototype.myCall = function (context, ...args) {
+        const ctx = context || window;
+        // 将当前调用的方法定义在cxt.fn上。（为了能以对象调用的形式绑定this）
+        ctx.fn = this;
+        context.fn = this;
+        context.fn(...agrs);
+        context.fn = null;
+      };
+      // 为传入的上下文添加fn属性，以让它调用。
+
+      // apply 也是类似的方法，只是apply传入逇参数要求是数组。如果用...args可以把数组解构，这样的话实现方法和call是一致的
+      Function.prototype.myApply = function (fn, agrs) {
+        context.fn = this;
+        context.fn(...agrs);
+        context.fn = null;
+      };
+
+      Function.prototype.myBind = function (context, ...firstargs) {
+        const self = this;
+        return function (...args) {
+          firstargs.concat(args);
+          self.call(context, ...firstargs.concat(args));
+        };
+      };
     </script>
   </body>
 </html>
