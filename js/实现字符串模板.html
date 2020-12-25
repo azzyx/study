@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>实现字符串模板</title>
+  </head>
+  <body>
+    <script>
+      // function replaceTemplate(str, ...rest) {
+      //   console.log("rest", rest);
+      //   str.replace(/\$\{([^]*)\}/g, function (matched, key, ...rest) {
+      //     console.log(matched, key, rest); // arguments见下面
+      //     matched = "";
+      //     return eval(key);
+      //   });
+      // }
+      // let year = 3,
+      //   pos = "前端";
+      // const str = "我已经有${year}的${po}开发经验了";
+      // console.log(replaceTemplate(str, year, pos));
+      // 定义一个字符串
+      let year = 3,
+        pos = "前端";
+      let str = "我已经有${year}年${pos}开发经验了";
+      function replace(str) {
+        // 原理是通过正则匹配，替换原字符串中的变量
+        return str.replace(/\$\{([^}])\}/g, function (matched, key) {
+          console.log(arguments); // arguments见下面
+          return eval(key);
+        });
+      }
+      console.log(replace(str));
+    </script>
+  </body>
+</html>
