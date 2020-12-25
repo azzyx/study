@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>myCall</title>
+  </head>
+  <body>
+    <script>
+      const foo = function (...rest) {
+        console.log("this---", this);
+        console.log("rest", this.name, rest);
+      };
+      const obj = {
+        name: "ggggggggg",
+        age: 21,
+        fn: function (...rest) {
+          console.log("this---222222", this);
+          console.log("rest", this.age, rest);
+        },
+      };
+      Function.prototype.myCall = function (obj, ...args) {
+        const fn = Symbol("fn");
+        obj = obj || window;
+        obj[fn] = this;
+        const result = obj[fn](...args);
+        console.log("obj[fn]", obj[fn]);
+        delete obj[fn];
+        console.log("objobjobj", obj);
+        return result;
+      };
+      foo.myCall(obj);
+      function bar() {
+        console.log(this.fn(1, 2, 3, 4));
+      }
+      bar.myCall(obj);
+
+      Function.prototype.myApply = function (obj, agrs) {
+        let fn = Symbol("fn");
+        obj = obj || window;
+        obj[fn] = this;
+        const result = obj[fn](args);
+        delete obj[fn];
+        return result;
+      };
+
+      Function.prototype.myBind = function (context) {
+        let that = this;
+        let args1 = [].slice.call(arguments, 1);
+        function Fn() {}
+        function bindFn() {
+          let args2 = [].slice.call(arguments);
+          /**
+           *  绑定this 指向，
+           * 如果绑定的函数被 new执行，当期函数的this就是当前的实例
+           */
+          that.apply(
+            this instanceof bindFn ? this : context,
+            args1.concat(args2)
+          );
+        }
+        // new 出来的结果可以找到原有类的原型
+        Fn.prototype = that.prototype;
+        bindFn.prototype = new Fn();
+        // 返回一个绑定后的函数
+        return bindFn;
+      };
+    </script>
+  </body>
+</html>
