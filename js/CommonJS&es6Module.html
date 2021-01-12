@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CommonJS&es6Module</title>
+  </head>
+  <body>
+    <div>
+      <div>
+        <h2>CommonJS</h2>
+        <p>
+          用于服务器，模块就是对象，输入时必须检查对象属性，在运行时确定模块的依赖关系，以及输入和输出变量。
+        </p>
+        <p>CommonJS模块输出的是值的缓存，不存在动态更新。</p>
+        <p>原理：CommonJS的一个模块就是一个脚本文件，require命令第一次加载该脚本，就会执行整个脚本，然后在内存生成一个对象。</p>
+      </div>
+      <div>
+        <h2>es6模块和CommonJS模块的差异</h2>
+        <ol>
+          <li>
+            CommonJS模块输出的是一个值的拷贝，会缓存值；es6模块输出的是值的引用，动态引用，不会缓存值，变量总是绑定其所在的模块。
+          </li>
+          <li>
+            CommonJS模块是运行时加载，es6模块是编译时输出接口。
+          </li>
+          <li>
+            CommonJS模块的require()是同步加载模块，es6模块的import命令是异步加载，有一个独立的模块依赖解析阶段。
+          </li>
+        </ol>
+      </div>
+    </div>
+  </body>
+</html>
